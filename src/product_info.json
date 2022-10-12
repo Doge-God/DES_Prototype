@@ -1,0 +1,60 @@
+[
+    {
+        "code": 9312631000290,
+        "name": "Earl Grey Tea",
+        "expireInDays": 365
+    },
+    {
+        "code": 9415272107059,
+        "name": "Maple Syrup",
+        "expireInDays": 90
+    },
+    {
+        "code": -1,
+        "name": "banana",
+        "expireInDays": 7
+    },
+    {
+        "code": -1,
+        "name": "apple",
+        "expireInDays": 7
+    },{
+        "code": -1,
+        "name": "sandwich",
+        "expireInDays": 3
+    },{
+        "code": -1,
+        "name": "orange",
+        "expireInDays": 7
+    },
+    {
+        "code": -1,
+        "name": "broccoli",
+        "expireInDays": 7
+    },
+    {
+        "code": -1,
+        "name": "carrot",
+        "expireInDays": 7
+    },
+    {
+        "code": -1,
+        "name": "hot dog",
+        "expireInDays": 5
+    },
+    {
+        "code": -1,
+        "name": "pizza",
+        "expireInDays": 2
+    },
+    {
+        "code": -1,
+        "name": "donut",
+        "expireInDays": 3
+    },
+    {
+        "code": -1,
+        "name": "cake",
+        "expireInDays": 3
+    }
+]
