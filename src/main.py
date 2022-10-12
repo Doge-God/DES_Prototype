@@ -5,6 +5,26 @@ from pyzbar.pyzbar import decode
 import numpy as np
 recognisable_food = ['banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake']
 
+#########################################
+############ GENERAl SETUP ##############
+#########################################
+
+#create UI object
+app = gp.GooeyPieApp('Fridge App')
+
+#Load product data list
+dataFile = open('product_info.json')
+productData = json.load(dataFile)
+dataFile.close()
+
+#init list for stored product
+###IMPORTANT: for now only storing in memory, NO persistent data storage set up###
+storedProduct = []
+
+#########################################
+########## SCANNER FUNCTIONS ############
+#########################################
+
 def scanBarCode():
     cap = cv2.VideoCapture(0)
 
@@ -94,19 +114,11 @@ def scanImg():
     cv2.destroyAllWindows()
     return item_name
 
-#create UI object
-app = gp.GooeyPieApp('Fridge App')
 
-#Load product data list
-dataFile = open('product_info.json')
-productData = json.load(dataFile)
-dataFile.close()
+#########################################
+############ UI FUNCTIONS ###############
+#########################################
 
-#init list for stored product
-###IMPORTANT: for now only storing in memory, NO persistent data storage set up###
-storedProduct = []
-
-#test function, ignore for production
 def test(event):
     print('test')
 
@@ -169,6 +181,10 @@ def manualAddDay(event):
             warningString += (item + '\n')
         app.alert('Check your fridge!',warningString,'warning')
 
+
+#########################################
+############### UI SETUP ################
+#########################################
 productList = gp.Table(app,['NAME', 'EXPIRE IN (DAYS)'])
 productList.set_column_widths(350,200)
 productList.height = 15
