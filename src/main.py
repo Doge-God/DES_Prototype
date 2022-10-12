@@ -1,11 +1,9 @@
-from ctypes import alignment
-from itertools import product
 import cv2
 import gooeypie as gp
 import json
-from multiprocessing.pool import ThreadPool
 from pyzbar.pyzbar import decode
 import numpy as np
+recognisable_food = ['banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake']
 
 def scanBarCode():
     cap = cv2.VideoCapture(0)
@@ -23,7 +21,7 @@ def scanBarCode():
                 #barcode rectangle loc.
                 (x,y,w,h) = barcode.rect
                 cv2.rectangle(img, (x-10, y-10),(x + w+10, y + h+10),
-                                (255, 0, 0), 2)
+                                (200, 0, 0), 2)
                 
                 if (barcode.type == 'EAN13'): 
                     bar_code_data = int(str(barcode.data, 'utf-8'))
@@ -45,10 +43,10 @@ def scanBarCode():
     return bar_code_data
 
 def scanImg():
+    cap = cv2.VideoCapture(0)
 
     item_name = None
-
-    cap = cv2.VideoCapture(0)
+    
     thres = 0.5 # Threshold to detect object
     nms_threshold = 0.2 #(0.1 to 1) 1 means no suppress , 0.1 means high suppress 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH,280) #width 
@@ -74,11 +72,11 @@ def scanImg():
     while True:
         success,img = cap.read()
         classIds, confs, bbox = net.detect(img,confThreshold=thres)
-
+        classId = 1
         if len(classIds) != 0:   #
             for classId, confidence, box in zip(classIds.flatten(), confs.flatten(), bbox):
-                cv2.rectangle(img, box, color=(0, 200, 0), thickness=1)
-                cv2.putText(img, classNames[classId-1], (box[0]+10, box[1]+30), cv2.FONT_HERSHEY_COMPLEX, 1, (0,200,0), 2)
+                cv2.rectangle(img, box, color=(0, 0, 200), thickness=2)
+                cv2.putText(img, classNames[classId-1], (box[0]+10, box[1]+30), cv2.FONT_HERSHEY_DUPLEX, 1, (0,0,200), 1)
 
         cv2.imshow("AI Recognition",img)
         
@@ -96,17 +94,12 @@ def scanImg():
     cv2.destroyAllWindows()
     return item_name
 
-
-#create thread for scanner
-pool = ThreadPool(processes=1)
-
 #create UI object
 app = gp.GooeyPieApp('Fridge App')
 
 #Load product data list
 dataFile = open('product_info.json')
 productData = json.load(dataFile)
-recognisable_food = ['banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake']
 dataFile.close()
 
 #init list for stored product
@@ -119,64 +112,66 @@ def test(event):
 
 def updateList(event):
     productList.clear()
+    storedProduct.sort(key = lambda x: x[2])
     for prod in storedProduct:
         productList.add_row([prod[1], prod[2]])
 
 def addProduct(event):
-    async_data = pool.apply_async(scanBarCode,())
-    return_data = async_data.get()
+    return_data = scanBarCode()
     for entry in productData:
         if (entry['code'] == return_data):
-            if (([entry['code'], entry['name'], entry['expireInDays']]) in storedProduct):
-                app.alert('Oops','This product is already in fridge.','info')
-                return
-            else:
-                storedProduct.append([entry['code'], entry['name'], entry['expireInDays']])
-                updateList(event)
-                return
+            storedProduct.append([entry['code'], entry['name'], entry['expireInDays']])
+            updateList(event)
+            return
     #reach here if no matching data found in dataset
-    app.alert('Oops','This product is not supported.','info')
-
+    app.alert('Oops','This product is not supported.','warning')
+    
 def takeProduct(event):
-    async_data = pool.apply_async(scanBarCode,())
-    return_data = async_data.get()
+    return_data = scanBarCode()
     for entry in storedProduct:
         if (entry[0] == return_data):
             storedProduct.remove(entry)
             updateList(event)
             return
     #reach here if no matching data found in dataset
-    app.alert('Oops','This product is not stored.','info')
+    app.alert('Oops','This product is not stored.','warning')
 
 def addProductImgRec(event):
-    async_data = pool.apply_async(scanImg,())
-    return_data = async_data.get()
+    return_data = scanImg()
     for entry in productData:
         if (entry['name'] == return_data):
-            if (([entry['code'], entry['name'], entry['expireInDays']]) in storedProduct):
-                app.alert('Oops','This product is already in fridge.','info')
-                return
-            else:
-                storedProduct.append([entry['code'], entry['name'], entry['expireInDays']])
-                updateList(event)
-                return
+            storedProduct.append([entry['code'], entry['name'], entry['expireInDays']])
+            updateList(event)
+            return
     #reach here if no matching data found in dataset
-    app.alert('Oops','This product is not supported.','info')
+    app.alert('Oops','This product is not supported.','warning')
 
 def takeProductImgRec(event):
-    async_data = pool.apply_async(scanImg,())
-    return_data = async_data.get()
+    return_data = scanImg()
     for entry in storedProduct:
         if (entry[1] == return_data):
             storedProduct.remove(entry)
             updateList(event)
             return
     #reach here if no matching data found in dataset
-    app.alert('Oops','This product is not stored.','info')
+    app.alert('Oops','This product is not stored.','warning')
+
+def manualAddDay(event):
+    aboutToExpire = []
+    for product in storedProduct:
+        product[2] -= 1
+        if (product[2] <= 2):
+            aboutToExpire.append(product[1])
+        updateList(event)
+    if len(aboutToExpire) != 0:
+        warningString = 'Expire in less than 2 days: \n'
+        for item in aboutToExpire:
+            warningString += (item + '\n')
+        app.alert('Check your fridge!',warningString,'warning')
 
 productList = gp.Table(app,['NAME', 'EXPIRE IN (DAYS)'])
-productList.set_column_widths(400,200)
-productList.height = 10
+productList.set_column_widths(350,200)
+productList.height = 15
 productList.set_column_alignments('center','center')
 
 bar_lbl = gp.Label(app, 'Barcode:')
@@ -187,17 +182,25 @@ imgRec_lbl = gp.Label(app, 'AI Recognition:')
 add_imgRec_btn = gp.Button(app, 'Put Item', addProductImgRec)
 take_imgRec_btn = gp.Button(app, 'Take Item', takeProductImgRec)
 
-app.width = 600
-app.set_grid(7, 3)
+dayPass_btn = gp.Button(app, '+Day', manualAddDay)
 
-app.add(bar_lbl, 1, 1, align = 'center')
+app.width = 600
+app.height = 430
+app.set_grid(4, 3)
+
+app.add(bar_lbl, 1, 1, align = 'left')
 app.add(add_btn, 1, 2, align = 'left', fill = True)
 app.add(take_btn, 1, 3, alight = 'right', fill = True)
 
-app.add(imgRec_lbl, 2, 1, align = 'center')
+app.add(imgRec_lbl, 2, 1, align = 'left')
 app.add(add_imgRec_btn, 2, 2, align = 'left', fill = True)
 app.add(take_imgRec_btn, 2, 3, alight = 'right', fill = True)
 
-app.add(productList, 3, 1, column_span = 3, fill = True)
+app.add(productList, 3, 1, column_span = 3, fill = True, align = 'center')
+
+app.add(dayPass_btn, 4, 3, fill = False, align = 'right')
+
+app.set_row_weights(1,1,10,1)
+app.set_column_weights(1,2,2)
 app.run()
 
